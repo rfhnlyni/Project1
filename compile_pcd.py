@@ -1,6 +1,6 @@
 import os
 import numpy as np
-import open3d as o3d
+from pypcd4 import PointCloud
 
 # Directory paths
 LIDAR0_DIR = "/home/ezarisma/Downloads/Practice/Semantic-KITTI-API-DPAI-main-ver3/lidar_pcd/lidar_0"
@@ -21,16 +21,33 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 def read_pcd_file(pcd_path):
     """Read PCD file and return point cloud data"""
     try:
-        pcd = o3d.io.read_point_cloud(pcd_path)
-        points = np.asarray(pcd.points)
+        # Read the PCD file using pypcd4
+        pc = PointCloud.from_path(pcd_path)
         
-        # Check if colors exist
-        colors = np.asarray(pcd.colors) if pcd.has_colors() else None
+        # Get points (x, y, z)
+        points = pc.numpy(("x", "y", "z"))
         
-        return points, colors, len(points)
+        # Get colors if available
+        colors = None
+        if "rgb" in pc.fields:
+            # Handle RGB field (stored as float in PCD format)
+            rgb_data = pc.numpy("rgb")
+            # Convert float RGB to uint8 (0-255)
+            rgb_uint8 = np.frombuffer(rgb_data.astype(np.float32).tobytes(), dtype=np.uint8)
+            colors = rgb_uint8.reshape(-1, 4)[:, :3]  # Remove alpha channel if present
+        elif all(f in pc.fields for f in ['r', 'g', 'b']):
+            # If separate r, g, b fields exist
+            colors = pc.numpy(("r", "g", "b"))
+        
+        count = len(pc)
+        
+        return points, colors, count, pc
+        
+    except FileNotFoundError:
+        return None, None, 0, None
     except Exception as e:
         print(f"Error reading PCD file {pcd_path}: {e}")
-        return None, None, 0
+        return None, None, 0, None
 
 def merge_point_clouds(points1, colors1, points2, colors2):
     """Merge two point clouds"""
@@ -49,19 +66,48 @@ def merge_point_clouds(points1, colors1, points2, colors2):
     
     return merged_points, merged_colors
 
-def save_pcd_file(points, colors, output_path):
-    """Save point cloud to PCD file"""
+def save_pcd_file(points, colors, output_path, original_pc):
+    """Save PCD file by copying and modifying an existing PointCloud"""
     try:
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(points)
+        if original_pc is None:
+            raise Exception("No original point cloud provided")
+        
+        # Create a copy of the original point cloud
+        pc_copy = PointCloud.from_path(original_pc._path) if hasattr(original_pc, '_path') else original_pc
+        
+        # Create new data array
+        dtype = []
+        if colors is not None:
+            dtype = [('x', 'f4'), ('y', 'f4'), ('z', 'f4'), ('rgb', 'f4')]
+        else:
+            dtype = [('x', 'f4'), ('y', 'f4'), ('z', 'f4')]
+        
+        data = np.zeros(len(points), dtype=dtype)
+        data['x'] = points[:, 0].astype('f4')
+        data['y'] = points[:, 1].astype('f4')
+        data['z'] = points[:, 2].astype('f4')
         
         if colors is not None:
-            pcd.colors = o3d.utility.Vector3dVector(colors)
+            # Pack RGB into float32
+            if colors.dtype != np.uint8:
+                colors_uint8 = colors.astype(np.uint8)
+            else:
+                colors_uint8 = colors
+            
+            rgb_packed = np.zeros(len(points), dtype=np.float32)
+            for i in range(len(points)):
+                r, g, b = colors_uint8[i] if len(colors_uint8[i]) == 3 else (colors_uint8[i][0], colors_uint8[i][1], colors_uint8[i][2])
+                rgb_packed[i] = np.frombuffer(np.array([r, g, b, 0], dtype=np.uint8).tobytes(), dtype=np.float32)[0]
+            
+            data['rgb'] = rgb_packed
         
-        o3d.io.write_point_cloud(output_path, pcd)
+        # Update the point cloud with new data
+        pc_copy._data = data
+        pc_copy.save(output_path)
         return True
+        
     except Exception as e:
-        print(f"Error saving PCD file {output_path}: {e}")
+        print(f"Error saving PCD file using copy method {output_path}: {e}")
         return False
 
 for scene in scenes:
@@ -85,25 +131,21 @@ for scene in scenes:
         
         print(f"Processing frame {frame}: ", end="")
         
-        if not os.path.exists(lidar0_file):
-            print("Missing LIDAR0 file")
-            continue
-        
         try:
             # Read LIDAR0 data
-            points0, colors0, count0 = read_pcd_file(lidar0_file)
+            points0, colors0, count0, pc0 = read_pcd_file(lidar0_file)
             
-            if points0 is None:
+            if points0 is None or count0 ==0:
                 print("Failed to read LIDAR0 file")
                 continue
             
             # Check if LIDAR1 file exists and has data
             lidar1_exists = os.path.exists(lidar1_file) and os.path.getsize(lidar1_file) > 0
-            points1, colors1, count1 = None, None, 0
+            points1, colors1, count1 = None, None, 0, None
             
             if lidar1_exists:
                 # Read LIDAR1 data
-                points1, colors1, count1 = read_pcd_file(lidar1_file)
+                points1, colors1, count1, pc1 = read_pcd_file(lidar1_file)
             
             # Only merge if LIDAR1 has MORE THAN 0 points
             if lidar1_exists and points1 is not None and count1 > 0:
@@ -111,20 +153,25 @@ for scene in scenes:
                 merged_points, merged_colors = merge_point_clouds(points0, colors0, points1, colors1)
                 total_points = len(merged_points)
                 
-                # Save merged file
-                if save_pcd_file(merged_points, merged_colors, output_file):
+                success = save_pcd_file(merged_points, merged_colors, output_file, pc0)
+                
+                if success:
                     print(f"MERGED - {count0:,} + {count1:,} = {total_points:,} points")
                 else:
                     print("Failed to save merged file")
             else:
+            
                 # Use only LIDAR0 data (LIDAR1 has 0 points or doesn't exist)
-                if save_pcd_file(points0, colors0, output_file):
-                    if lidar1_exists and count1 == 0:
-                        print(f"LIDAR0 ONLY - {count0:,} points (LIDAR1 has 0 points)")
-                    elif lidar1_exists and points1 is None:
-                        print(f"LIDAR0 ONLY - {count0:,} points (LIDAR1 file corrupted)")
-                    else:
-                        print(f"LIDAR0 ONLY - {count0:,} points (LIDAR1 file missing)")
+                success = save_pcd_file(points0, colors0, output_file, pc0)
+                
+                if success:
+                    if save_pcd_file(points0, colors0, output_file):
+                        if lidar1_exists and count1 == 0:
+                            print(f"LIDAR0 ONLY - {count0:,} points (LIDAR1 has 0 points)")
+                        elif lidar1_exists and points1 is None:
+                            print(f"LIDAR0 ONLY - {count0:,} points (LIDAR1 file corrupted)")
+                        else:
+                            print(f"LIDAR0 ONLY - {count0:,} points (LIDAR1 file missing)")
                 else:
                     print("Failed to save LIDAR0 file")
                     
