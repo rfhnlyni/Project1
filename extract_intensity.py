@@ -67,7 +67,9 @@ for stem in target_stems:
         if len(intensity_array) > 0:
             normalized_intensity = intensity_array / 255.0
   
-            normalized_intensity = np.clip(normalized_intensity, 0.0, 1.0)
+            # ERROR CHECK
+            if np.any(normalized_intensity < 0.0) or np.any(normalized_intensity > 1.0):
+                raise ValueError(f"Normalized intensity values out of range [0,1]. Min: {np.min(normalized_intensity):.3f}, Max: {np.max(normalized_intensity):.3f}")
             
             original_min = np.min(intensity_array)
             original_max = np.max(intensity_array)
