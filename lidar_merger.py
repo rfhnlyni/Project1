@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import glob
+import shutil
 
 class LidarMerger:
     def __init__(self, lidar0_dir, lidar1_dir, output_dir):

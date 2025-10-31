@@ -1,5 +1,6 @@
 import os
 import glob
+import shutil
 import numpy as np
 from pypcd4 import PointCloud
 
@@ -26,14 +27,17 @@ class IntensityExtractor:
             ])
             for scene in scenes:
                 pcd_dir = os.path.join(lidar_base_dir, scene)
-                
                 bin_dir = os.path.join(self.bin_base_dir, f"sequences_{lidar_name}", scene, "velodyne")
-                
                 output_dir = os.path.join(self.output_base_dir, lidar_name, scene, "velodyne")
                 
                 os.makedirs(output_dir, exist_ok=True)
                 print(f"\nExtracting intensity for {lidar_name} / Scene {scene}")
                 self.extract_scene(pcd_dir, bin_dir, output_dir)
+
+                # Copy extras from the filtered BIN scene folder
+                bin_scene_dir = os.path.join(self.bin_base_dir, f"sequences_{lidar_name}", scene)
+                self._copy_extras(bin_scene_dir, os.path.dirname(output_dir))
+                
 
     def extract_scene(self, pcd_dir, bin_dir, output_dir):
         """Extract intensity for all PCD/BIN in 1 scene/folder"""
@@ -92,4 +96,24 @@ class IntensityExtractor:
 
         except Exception as e:
             print(f"  [ERROR] {stem}: {e}")
+            
+    def _copy_extras(self, input_scene_dir, output_scene_dir):
+        extras = ["calib.txt", "poses.txt"]
+        folders = ["cameras", "image_2"]
+
+        # Copy text files
+        for fname in extras:
+            src = os.path.join(input_scene_dir, fname)
+            dst = os.path.join(output_scene_dir, fname)
+            if os.path.exists(src):
+                shutil.copy2(src, dst)
+                print(f"[COPY] {fname} copied.")
+
+        # Copy folders
+        for folder in folders:
+            src = os.path.join(input_scene_dir, folder)
+            dst = os.path.join(output_scene_dir, folder)
+            if os.path.exists(src):
+                shutil.copytree(src, dst, dirs_exist_ok=True)
+                print(f"[COPY] Folder '{folder}' copied.")
 
