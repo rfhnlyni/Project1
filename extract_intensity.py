@@ -3,7 +3,6 @@ import glob
 import numpy as np
 from pypcd4 import PointCloud
 
-# --- DIRECTORY DEFINITIONS ---
 PCD_BASE_DIR = "/home/ezarisma/Downloads/Practice/Semantic-KITTI-API-DPAI-main-ver3/pcd_data/07/07/lidar_point_cloud_top_rear_lidar"
 
 BIN_BASE_DIR = "/home/ezarisma/Downloads/Practice/Semantic-KITTI-API-DPAI-main-ver3/filtered/sequences_lidar1/07/velodyne" 
