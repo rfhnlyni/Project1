@@ -1,4 +1,5 @@
 import os
+import shutil
 import numpy as np
 
 class LidarFilter:
@@ -18,11 +19,14 @@ class LidarFilter:
         for scene in scenes:
             print(f"\nProcessing Scene {scene}")
             
-            velodyne_dir = os.path.join(self.base_input_dir, scene, "velodyne")
-            label_dir = os.path.join(self.base_input_dir, scene, "labels")
+            input_scene_dir = os.path.join(self.base_input_dir, scene)
+            output_scene_dir = os.path.join(self.base_output_dir, scene)
+            os.makedirs(output_scene_dir, exist_ok=True)
             
-            output_velodyne_dir = os.path.join(self.base_output_dir, scene, "velodyne")
-            output_label_dir = os.path.join(self.base_output_dir, scene, "labels")
+            velodyne_dir = os.path.join(input_scene_dir, "velodyne")
+            label_dir = os.path.join(input_scene_dir, "labels")
+            output_velodyne_dir = os.path.join(output_scene_dir, "velodyne")
+            output_label_dir = os.path.join(output_scene_dir, "labels")
             os.makedirs(output_velodyne_dir, exist_ok=True)
             os.makedirs(output_label_dir, exist_ok=True)
 
@@ -33,7 +37,10 @@ class LidarFilter:
             bin_files = sorted([f for f in os.listdir(velodyne_dir) if f.endswith('.bin')])
             for filename in bin_files:
                 self._process_file(scene, filename, velodyne_dir, label_dir, output_velodyne_dir, output_label_dir)
-        
+            
+            # Copy extra files/folders 
+            self._copy_extras(input_scene_dir, output_scene_dir)
+
         print("\nAll scenes processed!")
 
     def _process_file(self, scene, filename, velodyne_dir, label_dir, output_velodyne_dir, output_label_dir):
@@ -52,9 +59,27 @@ class LidarFilter:
         filtered_points = points[mask]
         filtered_labels = labels[mask]
 
-        # Save output
+        # Save filtered outputs
         filtered_points.tofile(os.path.join(output_velodyne_dir, filename))
         filtered_labels.tofile(os.path.join(output_label_dir, filename.replace(".bin", ".label")))
 
         print(f"[OK] {scene}/{filename} - {len(filtered_points)} points kept (remission={self.filter_value})")
+
+    def _copy_extras(self, input_scene_dir, output_scene_dir):
+        extras = ["calib.txt", "poses.txt"]
+        folders = ["cameras", "image_2"]
+
+        # Copy text files
+        for fname in extras:
+            src = os.path.join(input_scene_dir, fname)
+            dst = os.path.join(output_scene_dir, fname)
+            if os.path.exists(src):
+                shutil.copy2(src, dst)
+
+        # Copy folders
+        for folder in folders:
+            src = os.path.join(input_scene_dir, folder)
+            dst = os.path.join(output_scene_dir, folder)
+            if os.path.exists(src):
+                shutil.copytree(src, dst, dirs_exist_ok=True)
 
