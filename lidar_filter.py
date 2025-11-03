@@ -66,7 +66,7 @@ class LidarFilter:
         print(f"[OK] {scene}/{filename} - {len(filtered_points)} points kept (remission={self.filter_value})")
 
     def _copy_extras(self, input_scene_dir, output_scene_dir):
-        extras = ["calib.txt", "poses.txt"]
+        extras = ["calib.txt", "poses.txt", "instances.txt"]
         folders = ["cameras", "image_2"]
 
         # Copy text files
