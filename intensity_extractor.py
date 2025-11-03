@@ -4,6 +4,7 @@ import shutil
 import numpy as np
 from pypcd4 import PointCloud
 
+
 class IntensityExtractor:
     def __init__(self, pcd_base_dir, bin_base_dir, output_base_dir, lidars=None):
         """
@@ -16,7 +17,14 @@ class IntensityExtractor:
         self.pcd_base_dir = pcd_base_dir
         self.bin_base_dir = bin_base_dir
         self.output_base_dir = output_base_dir
-        self.lidars = lidars if lidars is not None else ["lidar0", "lidar1"]
+
+        if lidars is None:
+            self.lidars = sorted([
+                d for d in os.listdir(pcd_base_dir)
+                if os.path.isdir(os.path.join(pcd_base_dir, d))
+            ])
+        else:
+            self.lidars = lidars
 
     def extract_all_lidars(self):
         for lidar_name in self.lidars:
@@ -27,17 +35,16 @@ class IntensityExtractor:
             ])
             for scene in scenes:
                 pcd_dir = os.path.join(lidar_base_dir, scene)
-                bin_dir = os.path.join(self.bin_base_dir, f"sequences_{lidar_name}", scene, "velodyne")
+                bin_dir = os.path.join(self.bin_base_dir, lidar_name, scene, "velodyne")
                 output_dir = os.path.join(self.output_base_dir, lidar_name, scene, "velodyne")
-                
+
                 os.makedirs(output_dir, exist_ok=True)
                 print(f"\nExtracting intensity for {lidar_name} / Scene {scene}")
                 self.extract_scene(pcd_dir, bin_dir, output_dir)
 
                 # Copy extras from the filtered BIN scene folder
-                bin_scene_dir = os.path.join(self.bin_base_dir, f"sequences_{lidar_name}", scene)
+                bin_scene_dir = os.path.join(self.bin_base_dir, lidar_name, scene)
                 self._copy_extras(bin_scene_dir, os.path.dirname(output_dir))
-                
 
     def extract_scene(self, pcd_dir, bin_dir, output_dir):
         """Extract intensity for all PCD/BIN in 1 scene/folder"""
@@ -96,10 +103,10 @@ class IntensityExtractor:
 
         except Exception as e:
             print(f"  [ERROR] {stem}: {e}")
-            
+
     def _copy_extras(self, input_scene_dir, output_scene_dir):
         extras = ["calib.txt", "poses.txt"]
-        folders = ["cameras", "image_2"]
+        folders = ["labels", "cameras", "image_2"]
 
         # Copy text files
         for fname in extras:
@@ -107,7 +114,6 @@ class IntensityExtractor:
             dst = os.path.join(output_scene_dir, fname)
             if os.path.exists(src):
                 shutil.copy2(src, dst)
-                print(f"[COPY] {fname} copied.")
 
         # Copy folders
         for folder in folders:
@@ -115,5 +121,4 @@ class IntensityExtractor:
             dst = os.path.join(output_scene_dir, folder)
             if os.path.exists(src):
                 shutil.copytree(src, dst, dirs_exist_ok=True)
-                print(f"[COPY] Folder '{folder}' copied.")
 

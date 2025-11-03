@@ -4,8 +4,8 @@ from intensity_extractor import IntensityExtractor
 from lidar_merger import LidarMerger
 
 BASE_INPUT_DIR = "/home/ezarisma/workspace/Project1/sequences"         # Original raw LIDAR data
-FILTERED_DIR_LIDAR0 = "./filtered/sequences_lidar0"
-FILTERED_DIR_LIDAR1 = "./filtered/sequences_lidar1"
+FILTERED_DIR_LIDAR0 = "./filtered/lidar0"
+FILTERED_DIR_LIDAR1 = "./filtered/lidar1"
 
 PCD_BASE_DIR = "/home/ezarisma/workspace/Project1/pcd_data"           # PCD files
 BIN_BASE_DIR = "./filtered"                  
