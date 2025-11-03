@@ -42,7 +42,7 @@ class IntensityExtractor:
                 print(f"\nExtracting intensity for {lidar_name} / Scene {scene}")
                 self.extract_scene(pcd_dir, bin_dir, output_dir)
 
-                # Copy extras from the filtered BIN scene folder
+                # Copy extras folder/file from the filtered BIN scene folder
                 bin_scene_dir = os.path.join(self.bin_base_dir, lidar_name, scene)
                 self._copy_extras(bin_scene_dir, os.path.dirname(output_dir))
 
@@ -105,7 +105,7 @@ class IntensityExtractor:
             print(f"  [ERROR] {stem}: {e}")
 
     def _copy_extras(self, input_scene_dir, output_scene_dir):
-        extras = ["calib.txt", "poses.txt"]
+        extras = ["calib.txt", "poses.txt", "instances.txt"]
         folders = ["labels", "cameras", "image_2"]
 
         # Copy text files
