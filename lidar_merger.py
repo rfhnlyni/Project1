@@ -102,7 +102,7 @@ class LidarMerger:
             print(f"Error: {e}")
 
     def _copy_extras(self, input_scene_dir, output_scene_dir):
-        extras = ["calib.txt", "poses.txt"]
+        extras = ["calib.txt", "poses.txt", "instances.txt"]
         folders = ["cameras", "image_2"]
 
         # Copy text files
