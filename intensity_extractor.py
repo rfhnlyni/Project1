@@ -1,124 +1,65 @@
 import os
-import glob
-import shutil
 import numpy as np
 from pypcd4 import PointCloud
 
-
 class IntensityExtractor:
-    def __init__(self, pcd_base_dir, bin_base_dir, output_base_dir, lidars=None):
+    def __init__(self, pcd_base_dir, output_base_dir):
         """
         Args:
-            pcd_base_dir (str): base folder for PCD files
-            bin_base_dir (str): base folder for filtered BIN files
-            output_base_dir (str): base folder to keep intensity extraction
-            lidars (list[str]): list lidar folder names
+            pcd_base_dir (str): PCD files
+            output_base_dir (str): store new BIN files
         """
         self.pcd_base_dir = pcd_base_dir
-        self.bin_base_dir = bin_base_dir
         self.output_base_dir = output_base_dir
 
-        if lidars is None:
-            self.lidars = sorted([
-                d for d in os.listdir(pcd_base_dir)
-                if os.path.isdir(os.path.join(pcd_base_dir, d))
-            ])
-        else:
-            self.lidars = lidars
+    def extract_from_memory(self, filtered_data, pcd_base_dir, lidar_output_dir, filter_value):
+        """
+        Args:
+            filtered_data (dict): {scene: {filename: (points, labels)}}
+            pcd_base_dir (str): PCD files
+            lidar_output_dir (str): folder output for lidar
+            filter_value (int/float): value from remission/intensity use to filter points
+        """
+        for scene, files in filtered_data.items():
+            vel_output_dir = os.path.join(lidar_output_dir, scene, "velodyne")
+            label_output_dir = os.path.join(lidar_output_dir, scene, "labels")
+            os.makedirs(vel_output_dir, exist_ok=True)
+            os.makedirs(label_output_dir, exist_ok=True)
 
-    def extract_all_lidars(self):
-        for lidar_name in self.lidars:
-            lidar_base_dir = os.path.join(self.pcd_base_dir, lidar_name)
-            scenes = sorted([
-                d for d in os.listdir(lidar_base_dir)
-                if os.path.isdir(os.path.join(lidar_base_dir, d))
-            ])
-            for scene in scenes:
-                pcd_dir = os.path.join(lidar_base_dir, scene)
-                bin_dir = os.path.join(self.bin_base_dir, lidar_name, scene, "velodyne")
-                output_dir = os.path.join(self.output_base_dir, lidar_name, scene, "velodyne")
+            for filename, (points, labels) in files.items():
+                stem = os.path.splitext(filename)[0]
+                pcd_path = os.path.join(pcd_base_dir, scene, f"{stem}.pcd")
 
-                os.makedirs(output_dir, exist_ok=True)
-                print(f"\nExtracting intensity for {lidar_name} / Scene {scene}")
-                self.extract_scene(pcd_dir, bin_dir, output_dir)
+                try:
+                    pc = PointCloud.from_path(pcd_path)
 
-                # Copy extras folder/file from the filtered BIN scene folder
-                bin_scene_dir = os.path.join(self.bin_base_dir, lidar_name, scene)
-                self._copy_extras(bin_scene_dir, os.path.dirname(output_dir))
+                    if "intensity" in pc.fields:
+                        intensity = pc.numpy(("intensity",)).flatten()
+                    elif "remission" in pc.fields:
+                        intensity = pc.numpy(("remission",)).flatten()
+                    else:
+                        print(f"[WARN] Missing intensity/remission for {stem}")
+                        continue
 
-    def extract_scene(self, pcd_dir, bin_dir, output_dir):
-        """Extract intensity for all PCD/BIN in 1 scene/folder"""
-        all_pcd_files = sorted(glob.glob(os.path.join(pcd_dir, "*.pcd")))
-        target_stems = []
+                    filtered_points = points
+                    filtered_labels = labels
+                    filtered_intensity = intensity[:len(points)]
 
-        for full_path in all_pcd_files:
-            stem = os.path.splitext(os.path.basename(full_path))[0]
-            try:
-                int(stem)
-                target_stems.append(stem)
-            except ValueError:
-                continue
+                    if len(filtered_points) == 0:
+                        print(f"[SKIP] {scene}/{filename} - no points after filtering")
+                        continue
 
-        print(f"Found {len(target_stems)} PCD files in {pcd_dir}")
+                    filtered_points[:, 3] = filtered_intensity / 255.0
 
-        for stem in target_stems:
-            self._process_single(stem, pcd_dir, bin_dir, output_dir)
+                    # Save new BIN and label
+                    points_out_path = os.path.join(vel_output_dir, filename)
+                    labels_out_path = os.path.join(label_output_dir, filename.replace(".bin", ".label"))
+                    
+                    filtered_points.tofile(points_out_path)
+                    filtered_labels.tofile(labels_out_path)
 
-    def _process_single(self, stem, pcd_dir, bin_dir, output_dir):
-        try:
-            padded_stem = f"{int(stem):03d}"
-            pcd_path = os.path.join(pcd_dir, f"{stem}.pcd")
-            bin_path = os.path.join(bin_dir, f"{padded_stem}.bin")
-            output_path = os.path.join(output_dir, f"{padded_stem}.bin")
+                    print(f"[EXTRACTED] {scene}/{filename} | points: {len(filtered_points)} | min: {filtered_points[:,3].min():.3f} max: {filtered_points[:,3].max():.3f}")
 
-            if not os.path.exists(bin_path):
-                print(f"  [SKIP] Missing BIN for {stem}")
-                return
-
-            pc: PointCloud = PointCloud.from_path(pcd_path)
-
-            if 'intensity' in pc.fields:
-                intensity_array = pc.numpy(('intensity',)).flatten()
-            elif 'remission' in pc.fields:
-                intensity_array = pc.numpy(('remission',)).flatten()
-            else:
-                print(f"  [WARN] Missing intensity/remission in {stem}")
-                return
-
-            normalized_intensity = intensity_array / 255.0 if len(intensity_array) > 0 else intensity_array
-
-            bin_data = np.fromfile(bin_path, dtype=np.float32)
-            if bin_data.size % 4 != 0:
-                print(f"  [ERROR] BIN size invalid for {stem}")
-                return
-            bin_data = bin_data.reshape((-1, 4))
-
-            if len(bin_data) != len(normalized_intensity):
-                print(f"  [WARN] Point count mismatch ({len(bin_data)} vs {len(normalized_intensity)}) for {stem}")
-                return
-
-            bin_data[:, 3] = normalized_intensity
-            bin_data.tofile(output_path)
-            print(f"  [DONE] {stem} -> saved to {output_path}")
-
-        except Exception as e:
-            print(f"  [ERROR] {stem}: {e}")
-
-    def _copy_extras(self, input_scene_dir, output_scene_dir):
-        extras = ["calib.txt", "poses.txt", "instances.txt"]
-        folders = ["labels", "cameras", "image_2"]
-
-        # Copy text files
-        for fname in extras:
-            src = os.path.join(input_scene_dir, fname)
-            dst = os.path.join(output_scene_dir, fname)
-            if os.path.exists(src):
-                shutil.copy2(src, dst)
-
-        # Copy folders
-        for folder in folders:
-            src = os.path.join(input_scene_dir, folder)
-            dst = os.path.join(output_scene_dir, folder)
-            if os.path.exists(src):
-                shutil.copytree(src, dst, dirs_exist_ok=True)
+                except Exception as e:
+                    print(f"[ERROR] {stem}: {e}")
 
