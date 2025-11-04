@@ -1,31 +1,40 @@
-import os
 from lidar_filter import LidarFilter
 from intensity_extractor import IntensityExtractor
 from lidar_merger import LidarMerger
+import os
 
-BASE_INPUT_DIR = "/home/ezarisma/workspace/Project1/sequences"         # Original raw LIDAR data
-PCD_BASE_DIR = "/home/ezarisma/workspace/Project1/pcd_data" 
-BIN_BASE_DIR = "./filtered"           # PCD files          
+BASE_INPUT_DIR = "/home/ezarisma/workspace/Project1/sequences"  
+PCD_BASE_DIR = "/home/ezarisma/workspace/Project1/pcd_data"   
 OUTPUT_EXTRACT_DIR = "./extracted_intensity"
 MERGE_OUTPUT_DIR = "./merged_lidar_points"
 
-lidars = ["lidar0", "lidar1"]  # Changes required
-filtered_dirs = [f"./filtered/{lidar}" for lidar in lidars]
+os.makedirs(OUTPUT_EXTRACT_DIR, exist_ok=True)
+os.makedirs(MERGE_OUTPUT_DIR, exist_ok=True)
 
-# Filter LIDAR points
-print("\nStep1: Filtering LIDAR points")
-for i, lidar in enumerate(lidars):
-    lidar_filter = LidarFilter(BASE_INPUT_DIR, filtered_dirs[i], filter_value=i)
-    lidar_filter.process_scenes()
+lidars = ["lidar0", "lidar1"]
+filter_values = [0, 1]
+filtered_results = {}
 
-# Extract intensity
-print("\nStep2: Extracting intensity")
-extractor = IntensityExtractor(pcd_base_dir=PCD_BASE_DIR, bin_base_dir=BIN_BASE_DIR, output_base_dir=OUTPUT_EXTRACT_DIR, lidars=lidars)
-extractor.extract_all_lidars()
+print("\nStep 1: Filtering LIDAR points (in memory)")
+for lidar, fval in zip(lidars, filter_values):
+    print(f"\nFiltering {lidar} with filter_value={fval}")
+    lidar_filter = LidarFilter(BASE_INPUT_DIR, filter_value=fval)
+    filtered_results[lidar] = lidar_filter.process_scenes(return_data=True)
 
-# Merge LIDAR points
-print("\nStep 3: Merging LIDAR points ")
-merger = LidarMerger(lidar0_dir=os.path.join(OUTPUT_EXTRACT_DIR, "lidar0"), lidar1_dir=os.path.join(OUTPUT_EXTRACT_DIR, "lidar1"), output_dir=MERGE_OUTPUT_DIR)
+print("\nStep 2: Extracting intensity directly")
+extractor = IntensityExtractor(pcd_base_dir=PCD_BASE_DIR, output_base_dir=OUTPUT_EXTRACT_DIR)
+
+for lidar, fval in zip(lidars, filter_values):
+    lidar_pcd_dir = os.path.join(PCD_BASE_DIR, lidar)
+    lidar_output_dir = os.path.join(OUTPUT_EXTRACT_DIR, lidar)
+    os.makedirs(lidar_output_dir, exist_ok=True)
+    
+    extractor.extract_from_memory(filtered_data=filtered_results[lidar], pcd_base_dir=lidar_pcd_dir, lidar_output_dir=lidar_output_dir, filter_value=fval)
+
+print("\nStep 3: Merging LIDAR points from memory")
+extracted_dirs = [os.path.join(OUTPUT_EXTRACT_DIR, lidar) for lidar in lidars]
+merger = LidarMerger(extracted_dirs=extracted_dirs, output_dir=MERGE_OUTPUT_DIR, sequence_base_dir=BASE_INPUT_DIR)
 merger.merge_all_scenes()
+
 
 print("\nComplete!")
