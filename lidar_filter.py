@@ -18,7 +18,7 @@ class LidarFilter:
         Args:
             return_data (bool): Whether to return filtered data in memory.
         Returns:
-            dict: {scene: {filename: (filtered_points, filtered_labels)}} if return_data=True
+            dict: {scene: {filename: (filtered_points, filtered_labels)}} if return_data=True.
         """
         # Dictionary to store filtered points and labels for all scenes
         scenes_data = {} if return_data else None
