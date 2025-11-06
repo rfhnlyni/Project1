@@ -6,8 +6,8 @@ class IntensityExtractor:
     def __init__(self, pcd_base_dir, output_base_dir):
         """
         Args:
-            pcd_base_dir (str): Path to directory containing PCD files.
-            output_base_dir (str): Path to directory where new BIN files will be stored.
+            pcd_base_dir (str): Path to directory containing PCD files
+            output_base_dir (str): Path to directory where new BIN files will be stored
         """
         self.pcd_base_dir = pcd_base_dir
         self.output_base_dir = output_base_dir
@@ -17,10 +17,10 @@ class IntensityExtractor:
         Extracts intensity values from PCD files and saves them as new BIN files, using the filtered points from memory.
         
         Args:
-            filtered_data (dict): {scene: {filename: (points, labels)}}.
-            pcd_base_dir (str): Path to directory containing PCD files.
-            lidar_output_dir (str): Output folder for lidar data.
-            filter_value (int/float): Filtered remission/intensity value.
+            filtered_data (dict): {scene: {filename: (points, labels)}}
+            pcd_base_dir (str): Path to directory containing PCD files
+            lidar_output_dir (str): Output folder for lidar data
+            filter_value (int/float): Filtered remission/intensity value
         """
         
         print(f"\nProcessing LiDAR Data (Remission = {filter_value})")
