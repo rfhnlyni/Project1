@@ -8,9 +8,9 @@ class LidarMerger:
         Merge LiDAR outputs
 
         Args:
-            extracted_dirs: Path to save after extract intensity.
-            output_dir (str): Path to directory where new BIN files will be stored.
-            sequence_base_dir (str): Path to copy extra files/folders.
+            extracted_dirs: Path to save after extract intensity
+            output_dir (str): Path to directory where new BIN files will be stored
+            sequence_base_dir (str): Path to copy extra files/folders
         """
         self.extracted_dirs = extracted_dirs
         self.output_dir = output_dir
