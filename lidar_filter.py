@@ -5,20 +5,20 @@ class LidarFilter:
     def __init__(self, base_input_dir, filter_value):
         """
         Args:
-            base_input_dir (str): Directory containing all scenes.
-            filter_value (int/float): Intensity/remission value used to filter points.
+            base_input_dir (str): Directory containing all scenes
+            filter_value (int/float): Intensity/remission value used to filter points
         """
         self.base_input_dir = base_input_dir
         self.filter_value = filter_value
 
     def process_scenes(self, return_data=True):
         """
-        Process all scenes and filter points based on the filter_value.
+        Process all scenes and filter points based on the filter_value
 
         Args:
-            return_data (bool): Whether to return filtered data in memory.
+            return_data (bool): Whether to return filtered data in memory
         Returns:
-            dict: {scene: {filename: (filtered_points, filtered_labels)}} if return_data=True.
+            dict: {scene: {filename: (filtered_points, filtered_labels)}} if return_data=True
         """
         # Dictionary to store filtered points and labels for all scenes
         scenes_data = {} if return_data else None
