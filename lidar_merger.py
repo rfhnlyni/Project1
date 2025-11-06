@@ -8,9 +8,9 @@ class LidarMerger:
         Merge LiDAR outputs
 
         Args:
-            extracted_dirs: extracted intensity
-            output_dir (str): store after merge
-            sequence_base_dir (str): copy extra files/folders
+            extracted_dirs: Path to save after extract intensity.
+            output_dir (str): Path to directory where new BIN files will be stored.
+            sequence_base_dir (str): Path to copy extra files/folders.
         """
         self.extracted_dirs = extracted_dirs
         self.output_dir = output_dir
@@ -32,7 +32,7 @@ class LidarMerger:
 
     def merge_scene(self, scene):
         """
-        Merge points and labels from all LiDARs for a single scene
+        Merge points and labels from all LiDARs for a single scene.
         """
         print(f"\nProcessing Scene {scene}")
         scene_output_dir = os.path.join(self.output_dir, scene)
@@ -93,14 +93,14 @@ class LidarMerger:
 
             print(f"[MERGED] {scene}/{filename} | points: {len(merged_points)}")
 
-        # Copy extra files/folders (e.g., calib, poses, images)
+        # Copy extra files/folders
         if self.sequence_base_dir:
             sequence_scene_dir = os.path.join(self.sequence_base_dir, scene)
             self._copy_extras(sequence_scene_dir, scene_output_dir)
 
     def _copy_extras(self, sequence_scene_dir, merged_scene_dir):
         """
-        Copy extra files (calibration, poses, etc.) and folders (images) to the merged scene directory
+        Copy extra files and folders to the merged scene directory.
         """
         extras = ["calib.txt", "poses.txt", "instances.txt"]
         folders = ["cameras", "image_2"]
