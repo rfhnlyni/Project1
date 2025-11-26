@@ -4,6 +4,8 @@ import numpy as np
 class LidarFilter:
     def __init__(self, base_input_dir, filter_value):
         """
+        Filter LiDAR by LiDAR ID (remission value)
+        
         Args:
             base_input_dir (str): Directory containing all scenes
             filter_value (int/float): Intensity/remission value used to filter points
@@ -54,7 +56,7 @@ class LidarFilter:
                 except Exception as e:
                     print(f"[ERROR] {scene}/{filename}: {e}")
                     continue
-
+                    
                 # Filter points by intensity/remission value
                 mask = points[:, 3] == self.filter_value
                 filtered_points = points[mask]
