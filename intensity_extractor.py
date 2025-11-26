@@ -5,6 +5,8 @@ from pypcd4 import PointCloud
 class IntensityExtractor:
     def __init__(self, pcd_base_dir, output_base_dir):
         """
+        Extract intensity
+        
         Args:
             pcd_base_dir (str): Path to directory containing PCD files
             output_base_dir (str): Path to directory where new BIN files will be stored
@@ -59,9 +61,14 @@ class IntensityExtractor:
                     if len(filtered_points) == 0:
                         print(f"[SKIP] {scene}/{filename} - no points after filtering")
                         continue
-
-                    # Update the 4th column of points with intensity (normalized 0–1)
-                    filtered_points[:, 3] = filtered_intensity / 255.0
+                    
+                    # Update the 4th column of points with intensity
+                    if lidar_name.lower() == "lidar_point_cloud_rear_lidar":
+                    	# Normalization for rear LiDAR
+                    	filtered_points[:, 3] = (filtered_intensity / 65535.0) * 255 / 255.0
+                    else:
+                    	# Normalization for other LiDARs
+                    	filtered_points[:, 3] = filtered_intensity / 255.0
 
                     # Save new BIN and label
                     points_out_path = os.path.join(vel_output_dir, filename)
@@ -69,9 +76,9 @@ class IntensityExtractor:
 
                     filtered_points.tofile(points_out_path)
                     filtered_labels.tofile(labels_out_path)
+                    pcd_points = pc.pc_data.shape[0]
 
-                    print(f"[EXTRACTED] {scene}/{filename} | points: {len(filtered_points)} | "
-                          f"min: {filtered_points[:,3].min():.3f} max: {filtered_points[:,3].max():.3f}")
+                    print(f"[EXTRACTED] {scene}/{filename} | bin points: {len(filtered_points)} | pcd points: {pcd_points} | " f"min intensity: {filtered_points[:,3].min():.3f} max intensity: {filtered_points[:,3].max():.3f}")
 
                 except Exception as e:
                     print(f"[ERROR] {stem}: {e}")
