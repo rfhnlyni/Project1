@@ -32,7 +32,7 @@ class LidarMerger:
 
     def merge_scene(self, scene):
         """
-        Merge points and labels from all LiDARs for a single scene.
+        Merge points and labels from all LiDARs for a single scene
         """
         print(f"\nProcessing Scene {scene}")
         scene_output_dir = os.path.join(self.output_dir, scene)
@@ -51,8 +51,8 @@ class LidarMerger:
         for filename in frame_files:
             merged_points_list = []
             merged_labels_list = []
-
             lidar_stats = []
+            total_original_points = 0 
 
             # Loop over all LiDAR directories
             for idx, lidar_dir in enumerate(self.extracted_dirs):
@@ -76,6 +76,8 @@ class LidarMerger:
                     lidar_stats.append(f"L{idx}: {len(points)} pts")
                 else:
                     lidar_stats.append(f"L{idx}: 0 pts (skipped)")
+                
+                total_original_points += len(points)
 
             # Skip if no valid LiDARs had points
             if not merged_points_list:
@@ -84,6 +86,10 @@ class LidarMerger:
 
             merged_points = np.vstack(merged_points_list).astype(np.float32)
             merged_labels = np.hstack(merged_labels_list).astype(np.uint32)
+            
+            intensity = merged_points[:, 3]
+            intensity_min = intensity.min() if len(intensity) > 0 else 0
+            intensity_max = intensity.max() if len(intensity) > 0 else 0
 
             # Save merged files
             points_out_path = os.path.join(velodyne_output_dir, filename)
@@ -91,7 +97,7 @@ class LidarMerger:
             merged_points.tofile(points_out_path)
             merged_labels.tofile(labels_out_path)
 
-            print(f"[MERGED] {scene}/{filename} | points: {len(merged_points)}")
+            print(f"[MERGED] {scene}/{filename} | original points: {total_original_points} | merged points: {len(merged_points)} | intensity range: {intensity_min:.3f}-{intensity_max:.3f}")
 
         # Copy extra files/folders
         if self.sequence_base_dir:
@@ -100,7 +106,7 @@ class LidarMerger:
 
     def _copy_extras(self, sequence_scene_dir, merged_scene_dir):
         """
-        Copy extra files and folders to the merged scene directory.
+        Copy extra files and folders to the merged scene directory
         """
         extras = ["calib.txt", "poses.txt", "instances.txt"]
         folders = ["cameras", "image_2"]
