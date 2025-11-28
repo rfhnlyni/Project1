@@ -1,0 +1,7 @@
+data/
+output/
+*.pyc
+*.bin
+*.pcd
+*.jpg
+*.label
