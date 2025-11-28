@@ -90,7 +90,7 @@ class Converter:
             
             # Create output directories
             output_extract_dir = os.path.join(output_dir, "extracted_intensity")
-            output_merge_dir = os.path.join(output_dir, "merged_lidar_points")
+            output_merge_dir = os.path.join(output_dir, "converted_data")
             
             os.makedirs(output_extract_dir, exist_ok=True)
             os.makedirs(output_merge_dir, exist_ok=True)
@@ -167,7 +167,7 @@ def main():
                        default="lidar_point_cloud_top_lidar,lidar_point_cloud_top_rear_lidar,lidar_point_cloud_left_lidar,lidar_point_cloud_rear_lidar,lidar_point_cloud_right_lidar,lidar_point_cloud_front_lidar",
                        help='LiDAR names (comma separated)')
     parser.add_argument('--filters', '-f', default="0,1,2,3,4,5",
-                       help='Filter values (comma separated integers)')
+                       help='Filter values (comma separated)')
     
     args = parser.parse_args()
     
