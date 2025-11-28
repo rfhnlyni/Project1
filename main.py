@@ -124,7 +124,7 @@ class Converter:
                 self.log(f"Completed extraction for {lidar}\n")
             
             # Step 3: Merging
-            self.log("\n" + "=" * 50)
+            self.log("=" * 50)
             self.log("STEP 3: MERGING LIDAR POINTS")
             self.log("=" * 50)
             
@@ -152,24 +152,7 @@ class Converter:
 def main():
     parser = argparse.ArgumentParser(
         description='PCD to BIN IntensityConverter',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Expected LiDAR-Filter mapping:
-  lidar_point_cloud_top_lidar       -> Filter: 0
-  lidar_point_cloud_top_rear_lidar  -> Filter: 1  
-  lidar_point_cloud_left_lidar      -> Filter: 2
-  lidar_point_cloud_rear_lidar      -> Filter: 3
-  lidar_point_cloud_right_lidar     -> Filter: 4
-  lidar_point_cloud_front_lidar     -> Filter: 5
-
-Examples:
-  # Use all LiDARs with default filters
-  %(prog)s -i data/sequences -p data/pcd_data -o output
-
-  # Use only top LiDAR with its expected filter
-  %(prog)s -i data/sequences -p data/pcd_data -o output -l lidar_point_cloud_top_lidar -f 0
-        """
-    )
+        formatter_class=argparse.RawDescriptionHelpFormatter)
     
     # Required arguments
     parser.add_argument('--input-seq', '-i', required=True,
