@@ -13,6 +13,16 @@ sys.path.append(current_dir)
 class Converter:
     def __init__(self):
         self.logs = []
+        
+        # Define expected lidar-filter mapping
+        self.EXPECTED_MAPPING = {
+            "lidar_point_cloud_top_lidar": 0,
+            "lidar_point_cloud_top_rear_lidar": 1,
+            "lidar_point_cloud_left_lidar": 2,
+            "lidar_point_cloud_rear_lidar": 3,
+            "lidar_point_cloud_right_lidar": 4,
+            "lidar_point_cloud_front_lidar": 5
+        }
     
     def log(self, message):
         timestamp = self.get_timestamp()
@@ -37,6 +47,20 @@ class Converter:
         
         return True
     
+    def validate_lidar_filter_pairs(self, lidars, filter_values):
+        """Validate that lidar names are paired with their expected filter values"""
+        errors = []
+        
+        for lidar, filter_val in zip(lidars, filter_values):
+            expected_filter = self.EXPECTED_MAPPING.get(lidar)
+            
+            if expected_filter is None:
+                errors.append(f"Unknown LiDAR name: '{lidar}'. Expected one of: {', '.join(self.EXPECTED_MAPPING.keys())}")
+            elif expected_filter != filter_val:
+                errors.append(f"LiDAR '{lidar}' should use filter value {expected_filter}, but got {filter_val}")
+        
+        return errors
+    
     def run_conversion(self, input_seq, input_pcd, output_dir, lidars, filter_values):
         """Run the complete conversion pipeline"""
         try:
@@ -46,6 +70,17 @@ class Converter:
             
             # Validate paths
             self.validate_paths(input_seq, input_pcd, output_dir)
+            
+            # Validate lidar-filter pairs
+            validation_errors = self.validate_lidar_filter_pairs(lidars, filter_values)
+            if validation_errors:
+                self.log("VALIDATION ERRORS:")
+                for error in validation_errors:
+                    self.log(f"{error}")
+                self.log("\nExpected LiDAR-Filter mapping:")
+                for lidar, expected_filter in self.EXPECTED_MAPPING.items():
+                    self.log(f"  {lidar} -> Filter: {expected_filter}")
+                raise ValueError("Invalid LiDAR-filter pairs provided")
             
             self.log(f"Sequence Data: {input_seq}")
             self.log(f"PCD Data: {input_pcd}")
@@ -115,7 +150,26 @@ class Converter:
             return False
 
 def main():
-    parser = argparse.ArgumentParser(description='PCD to BIN IntensityConverter')
+    parser = argparse.ArgumentParser(
+        description='PCD to BIN IntensityConverter',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Expected LiDAR-Filter mapping:
+  lidar_point_cloud_top_lidar       -> Filter: 0
+  lidar_point_cloud_top_rear_lidar  -> Filter: 1  
+  lidar_point_cloud_left_lidar      -> Filter: 2
+  lidar_point_cloud_rear_lidar      -> Filter: 3
+  lidar_point_cloud_right_lidar     -> Filter: 4
+  lidar_point_cloud_front_lidar     -> Filter: 5
+
+Examples:
+  # Use all LiDARs with default filters
+  %(prog)s -i data/sequences -p data/pcd_data -o output
+
+  # Use only top LiDAR with its expected filter
+  %(prog)s -i data/sequences -p data/pcd_data -o output -l lidar_point_cloud_top_lidar -f 0
+        """
+    )
     
     # Required arguments
     parser.add_argument('--input-seq', '-i', required=True,
@@ -145,18 +199,10 @@ def main():
     
     # Run conversion
     converter = Converter()
-    success = converter.run_conversion(
-        input_seq=args.input_seq,
-        input_pcd=args.input_pcd,
-        output_dir=args.output,
-        lidars=lidars,
-        filter_values=filter_values
-    )
+    success = converter.run_conversion(input_seq=args.input_seq, input_pcd=args.input_pcd, output_dir=args.output, lidars=lidars, filter_values=filter_values)
     
     # Exit with appropriate code
     sys.exit(0 if success else 1)
 
 if __name__ == '__main__':
     main()
-
-
