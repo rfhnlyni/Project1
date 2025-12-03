@@ -65,7 +65,7 @@ class IntensityExtractor:
                     # Update the 4th column of points with intensity
                     if lidar_name.lower() == "lidar_point_cloud_rear_lidar":
                     	# Normalization for rear LiDAR
-                    	filtered_points[:, 3] = (filtered_intensity / 65535.0) * 255 / 255.0
+                    	filtered_points[:, 3] = filtered_intensity / 65535.0
                     else:
                     	# Normalization for other LiDARs
                     	filtered_points[:, 3] = filtered_intensity / 255.0
