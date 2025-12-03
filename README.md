@@ -103,7 +103,7 @@ pip install -r requirements.txt
 
 #### Overall LiDAR
 ```text
-main.py --input-seq /path/to/sequence/dataset --input-pcd /path/to/pcd/dataset --output /path/to/output/folder
+python3 main.py --input-seq /path/to/sequence/dataset --input-pcd /path/to/pcd/dataset --output /path/to/output/folder
 ```
 where:
 - **`input-seq`** : path to the sequences dataset directory
@@ -112,12 +112,12 @@ where:
 
 Example
 ```text
-main.py --input-seq data/sequences --input-pcd data/pcd_data --output output
+python3 main.py --input-seq data/sequences --input-pcd data/pcd_data --output output
 ```
 
 #### Specific LiDAR
 ```text
-main.py --input-seq /path/to/sequence/dataset --input-pcd /path/to/pcd/dataset --output /path/to/output/folder --lidars "lidar_name" --filters lidar_ID
+python3 main.py --input-seq /path/to/sequence/dataset --input-pcd /path/to/pcd/dataset --output /path/to/output/folder --lidars "lidar_name" --filters lidar_ID
 ```
 
 where:
@@ -130,9 +130,9 @@ where:
 Example
 - One specific LiDAR
 ```text
-main.py --input-seq data/sequences --input-pcd data/pcd_data --output output --lidars "lidar_point_cloud_top_lidar" --filters 0
+python3 main.py --input-seq data/sequences --input-pcd data/pcd_data --output output --lidars "lidar_point_cloud_top_lidar" --filters 0
 ```
 - Multiple LiDAR
 ```text
-main.py --input-seq data/sequences --input-pcd data/pcd_data --output output --lidars "lidar_point_cloud_top_lidar,lidar_point_cloud_front_lidar" --filters "0,5"
+python3 main.py --input-seq data/sequences --input-pcd data/pcd_data --output output --lidars "lidar_point_cloud_top_lidar,lidar_point_cloud_front_lidar" --filters "0,5"
 ```
