@@ -1,5 +1,7 @@
 data/
 output/
+converted_data/
+extracted_intensity/
 *.pyc
 *.bin
 *.pcd
