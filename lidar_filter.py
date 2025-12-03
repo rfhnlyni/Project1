@@ -12,8 +12,9 @@ class LidarFilter:
         """
         self.base_input_dir = base_input_dir
         self.filter_value = filter_value
-
-    def process_scenes(self, return_data=True):
+        self.filtering_stats = {}
+        
+    def process_scenes(self, return_data=False, converter=None):
         """
         Process all scenes and filter points based on the filter_value
 
