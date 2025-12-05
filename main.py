@@ -1,17 +1,25 @@
 import os
 import sys
-import argparse
-from pathlib import Path
-from lidar_filter import LidarFilter
-from intensity_extractor import IntensityExtractor
-from lidar_merger import LidarMerger
+import argparse  # CLI
+from datetime import datetime
 
-# Add current directory to path
+# Add current directory to Python path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
+# Import local modules
+try:
+    from lidar_filter import LidarFilter
+    from intensity_extractor import IntensityExtractor
+    from lidar_merger import LidarMerger
+except ImportError as e:
+    print(f"Error importing required modules: {e}")
+    print("Make sure lidar_filter.py, intensity_extractor.py, and lidar_merger.py are in the same directory.")
+    sys.exit(1)
+
 class Converter:
     def __init__(self):
+        """Initialize the Converter"""
         self.logs = []
         
         # Define expected lidar-filter mapping
@@ -25,13 +33,14 @@ class Converter:
         }
     
     def log(self, message):
+        """Log a message with timestamp"""
         timestamp = self.get_timestamp()
         log_message = f"[{timestamp}] {message}"
         print(log_message)
         self.logs.append(log_message)
     
     def get_timestamp(self):
-        from datetime import datetime
+        """Get current timestamp"""
         return datetime.now().strftime("%H:%M:%S")
     
     def validate_paths(self, input_seq, input_pcd, output_dir):
@@ -61,22 +70,30 @@ class Converter:
         
         return errors
     
-    def run_conversion(self, input_seq, input_pcd, output_dir, lidars, filter_values):
-        """Run the complete conversion pipeline"""
+    def run_conversion(self, input_seq, input_pcd, output_dir, lidars, filter_values, progress_callback=None):
+        """Run the complete conversion pipeline - CLI/GUI"""
         try:
+            if progress_callback:
+                progress_callback("Starting conversion...", 0)
+                
             self.log("=" * 50)
             self.log("Starting PCD to BIN Conversion")
             self.log("=" * 50)
             
             # Validate paths
+            if progress_callback:
+                progress_callback("Validating paths...", 5)
+                
             self.validate_paths(input_seq, input_pcd, output_dir)
             
             # Validate lidar-filter pairs
+            if progress_callback:
+                progress_callback("Validating LiDAR configuration...", 10)
             validation_errors = self.validate_lidar_filter_pairs(lidars, filter_values)
             if validation_errors:
                 self.log("VALIDATION ERRORS:")
                 for error in validation_errors:
-                    self.log(f"{error}")
+                    self.log(f"  {error}")
                 self.log("\nExpected LiDAR-Filter mapping:")
                 for lidar, expected_filter in self.EXPECTED_MAPPING.items():
                     self.log(f"  {lidar} -> Filter: {expected_filter}")
@@ -96,6 +113,9 @@ class Converter:
             os.makedirs(output_merge_dir, exist_ok=True)
             
             # Step 1: Filtering
+            if progress_callback:
+                progress_callback("Filtering LiDAR point clouds...", 15)
+                
             self.log("=" * 50)
             self.log("STEP 1: FILTERING LIDAR POINTS")
             self.log("=" * 50)
@@ -109,6 +129,9 @@ class Converter:
                 self.log(f"Completed filtering for {lidar}\n")
             
             # Step 2: Intensity Extraction
+            if progress_callback:
+                progress_callback("Extracting intensity values...", 55)
+                
             self.log("=" * 50)
             self.log("STEP 2: EXTRACTING INTENSITY")
             self.log("=" * 50)
@@ -124,19 +147,31 @@ class Converter:
                 self.log(f"Completed extraction for {lidar}\n")
             
             # Step 3: Merging
+            if progress_callback:
+                progress_callback("Merging LiDAR outputs...", 75)
+                
             self.log("=" * 50)
             self.log("STEP 3: MERGING LIDAR POINTS")
             self.log("=" * 50)
             
+            self.log(f"Starting merging process")
             extracted_dirs = [os.path.join(output_extract_dir, lidar) for lidar in lidars]
             merger = LidarMerger(extracted_dirs=extracted_dirs, output_dir=output_merge_dir, sequence_base_dir=input_seq)
             merger.merge_all_scenes()
+            
+            if progress_callback:
+                progress_callback("Finalizing conversion...", 95)
+                
+            self.log(f"Completed merging\n")
             
             self.log("=" * 50)
             self.log("CONVERSION COMPLETE!")
             self.log("=" * 50)
             self.log(f"Results saved to: {output_merge_dir}")
             self.log("Intensity values have been successfully converted from PCD to BIN!")
+            
+            if progress_callback:
+                progress_callback("Conversion complete!", 100)
             
             return True
             
@@ -147,9 +182,15 @@ class Converter:
             self.log("   - Verify PCD files are not corrupted")
             self.log("   - Ensure LiDAR names match your folder structure")
             self.log("   - Check file permissions")
+            
+            if progress_callback:
+                progress_callback(f"Error: {str(e)}", 100)
+                
             return False
 
+# CLI CODE
 def main():
+    """Command-line interface entry point"""
     parser = argparse.ArgumentParser(
         description='PCD to BIN IntensityConverter',
         formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -180,11 +221,11 @@ def main():
         print(f"Error: Number of LiDAR names ({len(lidars)}) must match number of filter values ({len(filter_values)})")
         sys.exit(1)
     
-    # Run conversion
+    # Run conversion (CLI doesn't use progress_callback)
     converter = Converter()
-    success = converter.run_conversion(input_seq=args.input_seq, input_pcd=args.input_pcd, output_dir=args.output, lidars=lidars, filter_values=filter_values)
+    success = converter.run_conversion(input_seq=args.input_seq, input_pcd=args.input_pcd, output_dir=args.output, lidars=lidars, filter_values=filter_values, progress_callback=None)
     
-    # Exit with appropriate code
+    # Exit
     sys.exit(0 if success else 1)
 
 if __name__ == '__main__':
