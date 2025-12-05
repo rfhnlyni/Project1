@@ -52,7 +52,7 @@ project_root/
 │   │   │   ├── 01/
 │   │   │   └── ...
 │   │   └── ...
-│   └── merged_lidar_points/
+│   └── converted_data/
 │       ├── 00/                        
 │       │   ├── cameras/
 │       │   ├── image_2/
