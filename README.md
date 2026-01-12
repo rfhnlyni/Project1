@@ -136,3 +136,7 @@ python3 main.py --input-seq data/sequences --input-pcd data/pcd_data --output ou
 ```text
 python3 main.py --input-seq data/sequences --input-pcd data/pcd_data --output output --lidars "lidar_point_cloud_top_lidar,lidar_point_cloud_front_lidar" --filters "0,5"
 ```
+ ### Graphic User Interface
+ ```text
+ python3 gui.py
+```
