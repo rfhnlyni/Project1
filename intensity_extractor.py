@@ -61,6 +61,10 @@ class IntensityExtractor:
                     if len(filtered_points) == 0:
                         print(f"[SKIP] {scene}/{filename} - no points after filtering")
                         continue
+                        
+                    pcd_points = pc.pc_data.shape[0]
+                    if len(filtered_points) != pcd_points:
+                    	raise ValueError(f"[ERROR] Point count mismatch in {scene}/{filename} | BIN: {len(filtered_points)} vs PCD: {pcd_points}")
                     
                     # Update the 4th column of points with intensity
                     if lidar_name.lower() == "lidar_point_cloud_rear_lidar":
